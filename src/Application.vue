@@ -1,18 +1,23 @@
 <template>
     <div id="dashboard">
-        <Menubar @event_from_child="openFromMenuBar" v-if="menuBarActive"></Menubar>
-        <CreateProject @event_from_child="openFromMenuBar" :name="createProject_name" :desc="createProject_desc" v-if="addProjectActive"></CreateProject>
-        <CreateTask @event_from_child="openFromMenuBar" :projectID="project_selected_id" :name="createTask_name" :desc="createTask_desc" :catid="project_category_id" v-else-if="addTaskActive"></CreateTask>
-        <Navbar @event_from_child="openFromMenuBar"></Navbar>
-        <div id="main_container">
-            <section v-if="!project_selected && clientData !== null">
-                <ProjectSection @event_from_child="fromProjects" v-for="element in clientData" :key="element.catid" :cid="element.catid" :categoryName="element.category" :projects="element.projects"></ProjectSection>
-            </section>
-            <section v-else-if="project_selected">
-                <TaskPart @event_from_child="fromTasks" :catid="project_category_id" :projectName="project_selected_name" :tasks="project_selected_content"></TaskPart>
-            </section>
+        <div id="inner_dash" v-if="connected">
+            <Menubar @event_from_child="openFromMenuBar" v-if="menuBarActive"></Menubar>
+            <CreateProject @event_from_child="openFromMenuBar" :name="createProject_name" :desc="createProject_desc" v-if="addProjectActive"></CreateProject>
+            <CreateTask @event_from_child="openFromMenuBar" :projectID="project_selected_id" :name="createTask_name" :desc="createTask_desc" :catid="project_category_id" v-else-if="addTaskActive"></CreateTask>
+            <Navbar @event_from_child="openFromMenuBar"></Navbar>
+            <div id="main_container">
+                <section v-if="!project_selected && clientData !== null">
+                    <ProjectSection @event_from_child="fromProjects" v-for="element in clientData" :key="element.catid" :cid="element.catid" :categoryName="element.category" :projects="element.projects"></ProjectSection>
+                </section>
+                <section v-else-if="project_selected">
+                    <TaskPart @event_from_child="fromTasks" :catid="project_category_id" :projectName="project_selected_name" :tasks="project_selected_content"></TaskPart>
+                </section>
+            </div>
+            <Foot v-bind:color="footer_color"></Foot>
         </div>
-        <Foot v-bind:color="footer_color"></Foot>
+        <div id="connection" v-else>
+            <ConnectPart @event_from_child="fromConnector"></ConnectPart>
+        </div>
     </div>
 </template>
 
@@ -24,12 +29,14 @@ import ProjectSection from './components/ProjectSection'
 import Menubar from './components/Menubar.vue'
 import CreateProject from './components/CreateProject.vue'
 import CreateTask from './components/CreateTask.vue'
+import ConnectPart from './components/ConnectPart.vue'
 import Foot from './components/Foot.vue'
 
 export default {
     name: "dashboard",
-    components: {Foot, ProjectSection, TaskPart, CreateProject, CreateTask, Menubar, Navbar},
+    components: {Foot, ProjectSection, TaskPart, CreateProject, CreateTask, Menubar, Navbar, ConnectPart},
     data() { return {
+        connected: false,
         clientData: null,
         menuBarActive: false,
         project_selected: false,
@@ -166,7 +173,7 @@ export default {
             }
         },
         updatePage(){
-            axios.get(this.api_URL+'/api/project')
+            axios.get(this.api_URL+'/api/project', { withCredentials: 'include' })
             .then(response => { 
                 this.clientData = response.data.sort(function(a, b){return a.catid - b.catid})
                 // On regarde si un projet etais en cours de lecture, cela signifie que une tâche a été modifié!
@@ -179,47 +186,94 @@ export default {
             .catch(error => console.log('Erreur avec l\'API: '+error))
         },
         deleteProject(idproject){
-            axios.delete(this.api_URL+'/api/project/'+idproject)
+            axios.delete(this.api_URL+'/api/project/'+idproject, { withCredentials: 'include' })
             .then(response => { this.updatePage() })
             .catch(error => console.log('Erreur avec l\'API: '+error))
         },
         addProject(name, desc){
-            axios.post(this.api_URL+'/api/project', { name: name, desc: desc })
+            axios.post(this.api_URL+'/api/project', { name: name, desc: desc }, { withCredentials: 'include' })
             .then(response => { this.updatePage() })
             .catch(error => console.log('Erreur avec l\'API: '+error))
         },
         addTask(task){
-            axios.post(this.api_URL+'/api/task', task)
+            axios.post(this.api_URL+'/api/task', task, { withCredentials: 'include' })
             .then(response => { this.updatePage() })
             .catch(error => console.log('Erreur avec l\'API: '+error))
         },
         deleteTask(taskID){
-            axios.delete(this.api_URL+'/api/task/'+taskID)
+            axios.delete(this.api_URL+'/api/task/'+taskID, { withCredentials: 'include' })
             .then(response => { this.updatePage() })
             .catch(error => console.log('Erreur avec l\'API: '+error))
         },
         updateElement(type, id, name, desc, categoryID){
             const urlAPI = (type === 'project') ? '/api/project' : '/api/task'
-            axios.put(this.api_URL+urlAPI, { id: id, name: name, desc: desc, category: categoryID})
+            axios.put(this.api_URL+urlAPI, { id: id, name: name, desc: desc, category: categoryID}, { withCredentials: 'include' })
             .then(response => { this.updatePage() })
             .catch(error => console.log('Erreur avec l\'API: '+error))
         },
         disconnect(){
-            location.href="/"
+            axios.get(this.api_URL+'/api/logout', { withCredentials: 'include' })
+            .then(response => {  // Reset tout
+                this.connected = false 
+                this.clientData = null
+                this.menuBarActive = false
+                this.project_selected = false
+                this.project_selected_name = ''
+                this.project_selected_id = null
+                this.project_category_id = null
+                this.project_selected_content = null
+                this.addProjectActive = false
+                this.createProject_id = null
+                this.createProject_cid = null
+                this.createProject_name = ''
+                this.createProject_desc = ''
+                this.createTask_id = null
+                this.createTask_cid = null
+                this.createTask_name = ''
+                this.createTask_desc = ''
+                this.addTaskActive = false
+                })
+            .catch(error => console.log('Erreur avec l\'API: '+error))
+        },
+        fromConnector(msg, info){
+            const url = (msg === 'register') ? '/api/register' : '/api/login'
+            axios.post(this.api_URL+url, info, { withCredentials: 'include'})
+            .then(response => {
+                if(msg === 'register'){
+                    axios.post(this.api_URL+'/api/login', {'username': info.username, 'password': info.password}, { withCredentials: 'include'})
+                    .then(response => { 
+                        this.updatePage() 
+                        this.connected = true;
+                    }).catch(error => console.log('Erreur avec l\'API: '+error))
+                } else {
+                    this.updatePage()
+                    this.connected = true;
+                }
+            })
+            .catch(error => console.log('Erreur avec l\'API: '+error))
         }
     },
     mounted: function () {
-        const element = document.body;
-        element.classList.add('body')
-        this.updatePage()
-        },
-    destroyed() {
-        const element = document.body;
-        element.classList.remove('body');
+        // Controler si une session est déjà existante!
+        axios.get(this.api_URL+'/api/project', { withCredentials: 'include' })
+        .then(response => {
+            this.updatePage()
+            this.connected = true;
+        })
+        .catch(error => console.log('Aucune session existante n\'a été trouvé'))
     }
 }
 </script>
 <style scoped>
+* {
+  font-family: nunito;
+}
+
+#dashboard {
+    margin: 0;
+    background-image: url('./assets/dot-grid.png');
+}
+
 section {
     display: flex;
     justify-content: center;

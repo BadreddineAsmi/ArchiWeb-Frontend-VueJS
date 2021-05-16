@@ -1,6 +1,6 @@
 <template>
     <div id="project">
-        <div id="project_editbtn" v-on:click="projectInteraction('editProject')"><img src="../assets/edit.png"></div>
+        <div id="project_editbtn" v-on:click="projectInteraction('editProject')" v-if="cid===1"><img src="../assets/edit.png"></div>
         <div v-on:click="projectInteraction('open')" id="project_visit_link">
             <div id="project_title">
                 <h2>{{ name }}</h2>

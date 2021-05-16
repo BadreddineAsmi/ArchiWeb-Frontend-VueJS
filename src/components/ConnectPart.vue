@@ -1,5 +1,5 @@
 <template>
-    <div id="application">
+    <div id="ConnectPart">
         <div id="container">
             <Login @event_from_child="register_event" v-if="login"></Login>
             <Register @event_from_child="goback_event" v-else></Register>
@@ -7,14 +7,14 @@
         <Foot v-bind:color="footer_color"></Foot>
     </div>
 </template>
+
 <script>
-import axios from 'axios';
-import Login from './components/Login.vue'
-import Register from './components/Register.vue'
-import Foot from './components/Foot.vue'
+import Foot from './Foot.vue'
+import Login from './Login.vue'
+import Register from './Register.vue'
 
 export default {
-    name: "application",
+    name: "ConnectPart",
     components: {Login, Register, Foot},
     data() { return {
         login: true,
@@ -42,30 +42,34 @@ export default {
             }
         },
         sendCredentials(type, info){
-            const url = (type === 'register') ? '/api/register' : '/api/login'
-            axios.post('http://localhost:8080'+url, info)
-            .then(response => { location.href = '/' })
-            .catch(error => console.log('Erreur avec l\'API: '+error))
+            this.$emit('event_from_child', type, info)
         }
-    },
-    mounted: () => {
-        const element = document.body;
-        element.classList.add('bodyparams');
-        },
-    destroyed() {
-        const element = document.body;
-        element.classList.remove('bodyparams');
     }
 }
 </script>
 <style scoped>
-#logandregister {
-    height: 100vh;
+* {
+    margin: 0;
+}
+
+#ConnectPart {
     display: flex;
     flex-direction: column;
     justify-content: center;
     flex-wrap: wrap;
     align-items: center;
+    z-index: 10;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100vh;
+    width: 100%;
+    background-image: url('../assets/bg_connect.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
 }
 
 #container {
@@ -76,4 +80,5 @@ export default {
     height: 95vh;
     margin: 0;
 }
+
 </style>
